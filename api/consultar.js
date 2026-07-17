@@ -1,6 +1,6 @@
 // api/consultar.js
 // Serverless Function de Vercel — corre en el servidor, no en el navegador
-// Usa Google Gemini API (free tier: 1,500 solicitudes/día, sin tarjeta)
+// Usa Groq API (gratis, sin tarjeta, corre modelos Llama de Meta)
 
 export default async function handler(req, res) {
   // Solo aceptar peticiones POST
@@ -24,25 +24,27 @@ DÍAS ESTIMADOS: X a Y días
 CONSEJO CLAVE: (una sola frase práctica)`;
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const respuesta = await fetch(url, {
+    const respuesta = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 300,
       }),
     });
 
     if (!respuesta.ok) {
       const errorTexto = await respuesta.text();
-      console.error("Error de Gemini API:", errorTexto);
-      return res.status(500).json({ error: "Error al consultar Gemini API" });
+      console.error("Error de Groq API:", errorTexto);
+      return res.status(500).json({ error: "Error al consultar Groq API" });
     }
 
     const data = await respuesta.json();
-    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const texto = data.choices?.[0]?.message?.content || "";
 
     return res.status(200).json({ texto });
 
