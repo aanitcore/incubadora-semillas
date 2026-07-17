@@ -1,6 +1,6 @@
 // api/consultar.js
 // Serverless Function de Vercel — corre en el servidor, no en el navegador
-// Aquí SÍ es seguro usar la API key porque nunca la ve el usuario
+// Usa Google Gemini API (free tier: 1,500 solicitudes/día, sin tarjeta)
 
 export default async function handler(req, res) {
   // Solo aceptar peticiones POST
@@ -24,28 +24,25 @@ DÍAS ESTIMADOS: X a Y días
 CONSEJO CLAVE: (una sola frase práctica)`;
 
   try {
-    const respuesta = await fetch("https://api.anthropic.com/v1/messages", {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+    const respuesta = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.CLAUDE_API_KEY, // Variable de entorno, segura
-        "anthropic-version": "2023-06-01",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 300,
-        messages: [{ role: "user", content: prompt }],
+        contents: [{ parts: [{ text: prompt }] }],
       }),
     });
 
     if (!respuesta.ok) {
       const errorTexto = await respuesta.text();
-      console.error("Error de Claude API:", errorTexto);
-      return res.status(500).json({ error: "Error al consultar Claude API" });
+      console.error("Error de Gemini API:", errorTexto);
+      return res.status(500).json({ error: "Error al consultar Gemini API" });
     }
 
     const data = await respuesta.json();
-    const texto = data.content?.[0]?.text || "";
+    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     return res.status(200).json({ texto });
 
