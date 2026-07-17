@@ -128,18 +128,19 @@ DÍAS ESTIMADOS: X a Y días
 CONSEJO CLAVE: (una sola frase práctica)`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/consultar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 300,
-          messages: [{ role: "user", content: prompt }],
-        }),
+        body: JSON.stringify({ semilla }),
       });
 
       const data = await res.json();
-      const texto = data.content?.[0]?.text || "";
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al consultar");
+      }
+
+      const texto = data.texto || "";
       const parsed = parsearRespuesta(texto);
 
       if (parsed) {
