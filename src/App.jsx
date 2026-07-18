@@ -19,24 +19,36 @@ const COLORS = {
   ok:        "#a3e635",
 };
 
-// ── Datos simulados de sensores ──────────────────────────────
+// ── Datos reales de sensores (vía ESP32) ──────────────────────
 function useSensores() {
   const [datos, setDatos] = useState({
-    temperatura: 27.4,
-    humedadAire: 63,
-    humedadSuelo: "HÚMEDO",
-    luz: "INDIRECTA",
+    temperatura: "--",
+    humedadAire: "--",
+    humedadSuelo: "Esperando...",
+    luz: "Esperando...",
+    conectado: false,
   });
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setDatos(d => ({
-        temperatura:  parseFloat((d.temperatura  + (Math.random() - 0.5) * 0.4).toFixed(1)),
-        humedadAire:  Math.round(d.humedadAire   + (Math.random() - 0.5) * 1.5),
-        humedadSuelo: d.humedadSuelo,
-        luz:          d.luz,
-      }));
-    }, 2500);
+    async function leer() {
+      try {
+        const res = await fetch("/api/sensores");
+        const data = await res.json();
+        if (data.temperatura !== null) {
+          setDatos({
+            temperatura: data.temperatura,
+            humedadAire: data.humedadAire,
+            humedadSuelo: data.humedadSuelo,
+            luz: data.luz,
+            conectado: true,
+          });
+        }
+      } catch {
+        // Si falla, deja los datos anteriores
+      }
+    }
+    leer();
+    const id = setInterval(leer, 5000); // Revisa cada 5 segundos
     return () => clearInterval(id);
   }, []);
 
@@ -183,7 +195,7 @@ CONSEJO CLAVE: (una sola frase práctica)`;
           <span style={{ color: COLORS.accent }}>Inteligente</span>
         </h1>
         <p style={{ fontSize: 12, color: COLORS.muted, marginTop: 6 }}>
-          Datos simulados — conecta el Arduino para datos reales
+          {sensores.conectado ? "Conectado al ESP32 — datos en vivo" : "Esperando datos del ESP32..."}
         </p>
       </div>
 
